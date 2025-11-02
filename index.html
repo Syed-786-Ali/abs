@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+        <!-- Bilkul — neeche aik **single-file** Restaurant app ka **mukammal HTML + CSS + JavaScript** code hai. Isay copy karke `restaurant.html` naam se save karo aur browser mein khol lo. Simple, responsive, aur beginner-friendly hai: menu, search, add to cart, cart modal, quantity change, order form (localStorage pe cart save), aur basic validation.
+
+Roman Urdu mein chhota sa note:
+
+* Har cheez ek hi file mein hai taake aasan ho.
+* Agar chaho, mein isay alag CSS/JS files mein bhi tod dunga.
+* Agar kisi feature ko expand karna ho (Firebase, backend, payments), bolo — bata dunga. -->
+
+
+
+<!-- ```html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Simple Restaurant App</title>
+  <style>
+    /* Basic reset */
+    *{box-sizing:border-box;margin:0;padding:0;font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;}
+
+    body{
+      background: linear-gradient(180deg,#fff 0%, #f7f8fb 100%);
+      color:#222; padding:20px;
+    }
+
+    .container{max-width:1100px;margin:0 auto;}
+
+    header{
+      display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;
+    }
+    header .brand{display:flex;gap:12px;align-items:center;}
+    .logo{
+      width:56px;height:56px;border-radius:8px;background:#ff7a59;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:20px;
+      box-shadow:0 6px 18px rgba(0,0,0,0.08);
+    }
+    header h1{font-size:20px;}
+    header p{font-size:13px;color:#555;}
+
+    /* Search + filter */
+    .controls{display:flex;gap:12px;margin:14px 0 20px;flex-wrap:wrap;}
+    .controls input[type="search"],
+    .controls select{
+      padding:10px 12px;border-radius:10px;border:1px solid #e3e6ee;min-width:160px;
+    }
+    .controls .cart-btn{
+      margin-left:auto;background:#0b63ff;color:#fff;padding:10px 14px;border-radius:10px;border:none;cursor:pointer;
+      display:flex;gap:8px;align-items:center;
+    }
+    .controls .cart-count{background:#fff;color:#0b63ff;padding:6px 8px;border-radius:999px;font-weight:600;}
+
+    /* Menu grid */
+    .menu-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;}
+    .card{
+      background:#fff;border-radius:12px;padding:14px;box-shadow:0 6px 18px rgba(16,24,40,0.06);display:flex;flex-direction:column;gap:10px;
+    }
+    .card .img{
+      height:140px;background-size:cover;background-position:center;border-radius:10px;
+    }
+    .card h3{font-size:16px;}
+    .card p{font-size:13px;color:#555;}
+    .card .meta{display:flex;justify-content:space-between;align-items:center;margin-top:auto;}
+    .card button{background:#ff7a59;border:none;color:#fff;padding:8px 10px;border-radius:8px;cursor:pointer;}
+
+    /* Cart modal */
+    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.35);display:none;align-items:center;justify-content:center;padding:20px;}
+    .modal{background:#fff;border-radius:12px;max-width:720px;width:100%;max-height:85vh;overflow:auto;padding:18px;box-shadow:0 18px 50px rgba(2,6,23,0.2);}
+    .modal h2{margin-bottom:10px;}
+    .cart-list{display:flex;flex-direction:column;gap:12px;margin-bottom:12px;}
+    .cart-item{display:flex;gap:12px;align-items:center;border-radius:8px;padding:10px;background:#f7f8fb;}
+    .cart-item img{width:64px;height:64px;border-radius:8px;object-fit:cover;}
+    .qty-controls{display:flex;gap:6px;align-items:center;}
+    .qty-controls button{padding:6px 8px;border-radius:6px;border:1px solid #e3e6ee;background:#fff;cursor:pointer;}
+    .order-summary{display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-weight:600;}
+
+    /* Form */
+    form.order-form{display:flex;flex-direction:column;gap:8px;margin-top:12px;}
+    form.order-form input, form.order-form textarea{
+      padding:10px;border-radius:8px;border:1px solid #e3e6ee;
+    }
+    form.order-form button{padding:10px;border-radius:10px;border:none;background:#0b63ff;color:#fff;cursor:pointer;margin-top:6px;}
+
+    /* Responsive */
+    @media (max-width:600px){
+      header{flex-direction:column;align-items:flex-start;gap:8px;}
+      .controls .cart-btn{margin-left:0;width:100%;}
+    }
+
+    /* small helper */
+    .muted{color:#6b7280;font-size:13px;}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="brand">
+        <div class="logo">R</div>
+        <div>
+          <h1>RestoApp</h1>
+          <p class="muted">Fast & simple online menu — practice project</p>
+        </div>
+      </div>
+
+      <div class="right">
+        <div class="muted">Welcome, Guest</div>
+      </div>
+    </header>
+
+    <div class="controls">
+      <input type="search" id="search" placeholder="Search items (e.g. biryani, burger...)" />
+      <select id="category">
+        <option value="">All Categories</option>
+        <option value="Main">Main Course</option>
+        <option value="Burger">Burgers</option>
+        <option value="Dessert">Desserts</option>
+        <option value="Drinks">Drinks</option>
+      </select>
+
+      <button class="cart-btn" id="openCart">
+        Cart <span class="cart-count" id="cartCount">0</span>
+      </button>
+    </div>
+
+    <main>
+      <section class="menu-grid" id="menuGrid">
+        <!-- menu cards inserted by JS -->
+      </section>
+    </main>
+  </div>
+
+  <!-- Cart Modal -->
+  <div class="modal-backdrop" id="cartModal">
+    <div class="modal" role="dialog" aria-modal="true">
+      <h2>Your Cart <small id="smallCount" class="muted"></small></h2>
+      <div class="cart-list" id="cartList"></div>
+
+      <div class="order-summary" id="orderSummary">
+        <div>Total:</div>
+        <div id="totalPrice">₹0.00</div>
+      </div>
+
+      <form class="order-form" id="orderForm">
+        <input type="text" id="name" placeholder="Full name" required />
+        <input type="tel" id="phone" placeholder="Phone number" required />
+        <textarea id="address" placeholder="Delivery address" rows="2" required></textarea>
+        <button type="submit" id="placeOrderBtn">Place Order</button>
+      </form>
+
+      <div style="margin-top:10px;display:flex;gap:8px;justify-content:flex-end;">
+        <button id="closeCart" style="padding:8px 10px;border-radius:8px;border:1px solid #e3e6ee;background:#fff;cursor:pointer;">Close</button>
+        <button id="clearCart" style="padding:8px 10px;border-radius:8px;border:1px solid #ff7a59;background:#fff;color:#ff7a59;cursor:pointer;">Clear</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /***************
+     * Sample Menu Data
+     * In a real app this comes from backend (API).
+     ***************/
+    const menuItems = [
+      { id: 'm1', name: 'Chicken Biryani', category: 'Main', price: 650, desc: 'Fragrant rice with tender chicken', img: 'https://images.unsplash.com/photo-1604908554022-5c7e2f6b1b5b?auto=format&fit=crop&w=800&q=60' },
+      { id: 'm2', name: 'Beef Burger', category: 'Burger', price: 420, desc: 'Juicy beef patty with cheese', img: 'https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=800&q=60' },
+      { id: 'm3', name: 'Veggie Burger', category: 'Burger', price: 350, desc: 'Healthy veggie patty', img: 'https://images.unsplash.com/photo-1604908176976-7a6a2a2f0d5f?auto=format&fit=crop&w=800&q=60' },
+      { id: 'm4', name: 'Gulab Jamun (2 pcs)', category: 'Dessert', price: 150, desc: 'Sweet syrupy dessert', img: 'https://images.unsplash.com/photo-1617191511300-6f7ba5b5a1d9?auto=format&fit=crop&w=800&q=60' },
+      { id: 'm5', name: 'Lassi', category: 'Drinks', price: 120, desc: 'Cool yogurt drink', img: 'https://images.unsplash.com/photo-1606756794639-5d9f6f6f7f0f?auto=format&fit=crop&w=800&q=60' },
+      { id: 'm6', name: 'Karahi Gosht', category: 'Main', price: 800, desc: 'Spicy karahi with mutton/beef', img: 'https://images.unsplash.com/photo-1604908177015-2d2e7f5d1fb4?auto=format&fit=crop&w=800&q=60' },
+    ];
+
+    /***************
+     * Cart State (uses localStorage)
+     ***************/
+    let cart = JSON.parse(localStorage.getItem('r_cart') || '{}');
+
+    // Helpers
+    const format = num => '₹' + Number(num).toFixed(2);
+
+    const saveCart = () => {
+      localStorage.setItem('r_cart', JSON.stringify(cart));
+      updateCartCountUI();
+    };
+
+    function updateCartCountUI(){
+      const totalCount = Object.values(cart).reduce((s,item)=>s + item.qty, 0);
+      document.getElementById('cartCount').textContent = totalCount;
+      document.getElementById('smallCount').textContent = totalCount ? `(${totalCount} items)` : '(empty)';
+    }
+
+    /***************
+     * Render Menu
+     ***************/
+    const menuGrid = document.getElementById('menuGrid');
+
+    function renderMenu(list){
+      menuGrid.innerHTML = '';
+      list.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <div class="img" style="background-image:url('${item.img}')"></div>
+          <h3>${item.name}</h3>
+          <p class="muted">${item.desc}</p>
+          <div class="meta">
+            <div><strong>${format(item.price)}</strong></div>
+            <button data-id="${item.id}">Add</button>
+          </div>
+        `;
+        card.querySelector('button').addEventListener('click', () => addToCart(item.id));
+        menuGrid.appendChild(card);
+      });
+    }
+
+    renderMenu(menuItems);
+
+    /***************
+     * Add to Cart
+     ***************/
+    function addToCart(id){
+      const item = menuItems.find(i=>i.id===id);
+      if(!item) return;
+      if(cart[id]) cart[id].qty += 1;
+      else cart[id] = { ...item, qty: 1 };
+      saveCart();
+      showToast(`${item.name} cart mein add hogaya.`);
+    }
+
+    /***************
+     * Toast (simple)
+     ***************/
+    function showToast(text){
+      const t = document.createElement('div');
+      t.textContent = text;
+      Object.assign(t.style, {position:'fixed',right:'20px',bottom:'20px',background:'#111',color:'#fff',padding:'10px 12px',borderRadius:'8px',zIndex:9999,opacity:0,transition:'all .3s'});
+      document.body.appendChild(t);
+      requestAnimationFrame(()=> t.style.opacity = 1);
+      setTimeout(()=> { t.style.opacity = 0; setTimeout(()=> t.remove(),300); }, 1800);
+    }
+
+    /***************
+     * Cart Modal UI
+     ***************/
+    const cartModal = document.getElementById('cartModal');
+    const openCartBtn = document.getElementById('openCart');
+    const closeCartBtn = document.getElementById('closeCart');
+    const cartListEl = document.getElementById('cartList');
+    const totalPriceEl = document.getElementById('totalPrice');
+    const clearCartBtn = document.getElementById('clearCart');
+
+    openCartBtn.addEventListener('click', openCart);
+    closeCartBtn.addEventListener('click', closeCart);
+    clearCartBtn.addEventListener('click', () => {
+      if(confirm('Cart clear karna hai?')) {
+        cart = {};
+        saveCart();
+        renderCart();
+      }
+    });
+
+    function openCart(){
+      renderCart();
+      cartModal.style.display = 'flex';
+    }
+    function closeCart(){
+      cartModal.style.display = 'none';
+    }
+
+    function renderCart(){
+      cartListEl.innerHTML = '';
+      const keys = Object.keys(cart);
+      if(keys.length === 0){
+        cartListEl.innerHTML = '<div class="muted">Cart empty. Kuch add karein!</div>';
+        totalPriceEl.textContent = format(0);
+        updateCartCountUI();
+        return;
+      }
+
+      let total = 0;
+      keys.forEach(k => {
+        const it = cart[k];
+        total += it.price * it.qty;
+        const itemEl = document.createElement('div');
+        itemEl.className = 'cart-item';
+        itemEl.innerHTML = `
+          <img src="${it.img}" alt="${it.name}" />
+          <div style="flex:1;">
+            <div><strong>${it.name}</strong></div>
+            <div class="muted">${format(it.price)} x ${it.qty} = ${format(it.price*it.qty)}</div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+            <div class="qty-controls">
+              <button data-action="dec" data-id="${k}">-</button>
+              <div style="min-width:28px;text-align:center;">${it.qty}</div>
+              <button data-action="inc" data-id="${k}">+</button>
+            </div>
+            <button data-action="remove" data-id="${k}" style="padding:6px 8px;border-radius:6px;border:1px solid #f1f1f1;background:#fff;cursor:pointer;">Remove</button>
+          </div>
+        `;
+        // attach handlers
+        itemEl.querySelectorAll('button').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const action = btn.getAttribute('data-action');
+            const id = btn.getAttribute('data-id');
+            if(action === 'inc'){ cart[id].qty++; saveCart(); renderCart(); }
+            if(action === 'dec'){ cart[id].qty = Math.max(1, cart[id].qty - 1); saveCart(); renderCart(); }
+            if(action === 'remove'){ delete cart[id]; saveCart(); renderCart(); }
+          });
+        });
+
+        cartListEl.appendChild(itemEl);
+      });
+
+      totalPriceEl.textContent = format(total);
+      updateCartCountUI();
+    }
+
+    /***************
+     * Place Order (simple)
+     ***************/
+    const orderForm = document.getElementById('orderForm');
+    orderForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = document.getElementById('name').value.trim();
+      const phone = document.getElementById('phone').value.trim();
+      const address = document.getElementById('address').value.trim();
+
+      if(!name || !phone || !address){
+        alert('Sab fields bharein.');
+        return;
+      }
+
+      if(Object.keys(cart).length === 0){
+        alert('Pehle cart mein items add karein.');
+        return;
+      }
+
+      // Build a simple order object (in real app send to server)
+      const order = {
+        id: 'ORD' + Date.now(),
+        name, phone, address,
+        items: cart,
+        total: Object.values(cart).reduce((s,i)=>s + i.price * i.qty, 0),
+        placedAt: new Date().toISOString()
+      };
+
+      // Save orders list locally for demo
+      const orders = JSON.parse(localStorage.getItem('r_orders') || '[]');
+      orders.push(order);
+      localStorage.setItem('r_orders', JSON.stringify(orders));
+
+      // Clear cart
+      cart = {};
+      saveCart();
+      renderCart();
+      orderForm.reset();
+      showToast('Order placed! Order ID: ' + order.id);
+      closeCart();
+      // For demo, also show order details in console
+      console.log('Order placed:', order);
+    });
+
+    /***************
+     * Search & Filter
+     ***************/
+    document.getElementById('search').addEventListener('input', (e) => {
+      const q = e.target.value.toLowerCase().trim();
+      const cat = document.getElementById('category').value;
+      filterAndRender(q, cat);
+    });
+    document.getElementById('category').addEventListener('change', (e) => {
+      const q = document.getElementById('search').value.toLowerCase().trim();
+      filterAndRender(q, e.target.value);
+    });
+
+    function filterAndRender(query, category){
+      let list = menuItems.filter(i => {
+        const matchQ = !query || i.name.toLowerCase().includes(query) || i.desc.toLowerCase().includes(query);
+        const matchCat = !category || i.category === category;
+        return matchQ && matchCat;
+      });
+      renderMenu(list);
+    }
+
+    // Init UI state
+    updateCartCountUI();
+
+    // Accessibility: close modal on backdrop click
+    document.getElementById('cartModal').addEventListener('click', (e) => {
+      if(e.target === e.currentTarget) closeCart();
+    });
+
+    // Quick keyboard shortcut: "c" to open cart
+    window.addEventListener('keydown', (e) => {
+      if(e.key.toLowerCase() === 'c' && !e.metaKey && !e.ctrlKey) {
+        openCart();
+      }
+    });
+  </script>
+</body>
+</html>
+
+<!-- 
+---
+
+Agar chaho to ab:
+
+* Isay **split** kar dain (separate `style.css` aur `app.js`) — mein kar dun.
+* Backend chaiye (orders store karne ke liye) — mein Firebase/Node example bana doon.
+* UI ko Pakistani/Urdu style mein localize kar doon (Urdu labels, prices PKR etc).
+
+Batao kaunsa next step chahoge? -->
+</body>
+</html>
